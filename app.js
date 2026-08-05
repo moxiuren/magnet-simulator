@@ -579,12 +579,21 @@ function updatePhysics(dt) {
 
       if (entity.isFerromagnetic()) {
         const B = computeMagneticField(entity.x, entity.y, entity.id);
-        if (B.mag > 80) {
-          const speed = Math.hypot(entity.vx, entity.vy);
-          if (speed < 40) {
-            entity.vx *= 0.4;
-            entity.vy *= 0.4;
-            entity.vAngle *= 0.2;
+        
+        // 磁吸捕获限速：限制最高吸引飞行速度为 120px/s，防止弹弓式飞越磁铁
+        const maxSpeed = 120;
+        const speed = Math.hypot(entity.vx, entity.vy);
+        if (speed > maxSpeed) {
+          entity.vx = (entity.vx / speed) * maxSpeed;
+          entity.vy = (entity.vy / speed) * maxSpeed;
+        }
+
+        // 强磁场贴合静止：靠近磁铁表面（B.mag > 60）时急速收敛平滑静止
+        if (B.mag > 60) {
+          if (speed < 60) {
+            entity.vx *= 0.2;
+            entity.vy *= 0.2;
+            entity.vAngle *= 0.1;
           }
         }
       }
@@ -594,10 +603,10 @@ function updatePhysics(dt) {
       entity.angle += entity.vAngle * subDt;
 
       const margin = entity.width / 2;
-      if (entity.x < margin) { entity.x = margin; entity.vx *= -0.4; }
-      if (entity.x > canvas.width - margin) { entity.x = canvas.width - margin; entity.vx *= -0.4; }
-      if (entity.y < margin) { entity.y = margin; entity.vy *= -0.4; }
-      if (entity.y > canvas.height - margin) { entity.y = canvas.height - margin; entity.vy *= -0.4; }
+      if (entity.x < margin) { entity.x = margin; entity.vx = 0; }
+      if (entity.x > canvas.width - margin) { entity.x = canvas.width - margin; entity.vx = 0; }
+      if (entity.y < margin) { entity.y = margin; entity.vy = 0; }
+      if (entity.y > canvas.height - margin) { entity.y = canvas.height - margin; entity.vy = 0; }
     }
 
     handleSATCollisions();
@@ -1985,15 +1994,17 @@ function loadPreset(preset) {
     magnet.pinned = true;
     state.entities.push(magnet);
 
-    state.entities.push(new MagnetEntity('paperclip', cx - 180, cy - 60));
-    state.entities.push(new MagnetEntity('nail', cx - 200, cy));
-    state.entities.push(new MagnetEntity('coin', cx - 170, cy + 60));
-    state.entities.push(new MagnetEntity('key', cx - 220, cy + 30));
+    // 左侧：能被磁铁吸引的铁制品（整齐纵向间隔排布，防止重叠弹飞）
+    state.entities.push(new MagnetEntity('paperclip', cx - 240, cy - 110));
+    state.entities.push(new MagnetEntity('nail', cx - 240, cy - 35));
+    state.entities.push(new MagnetEntity('coin', cx - 240, cy + 40));
+    state.entities.push(new MagnetEntity('key', cx - 240, cy + 115));
 
-    state.entities.push(new MagnetEntity('wood', cx + 180, cy - 60));
-    state.entities.push(new MagnetEntity('duck', cx + 200, cy));
-    state.entities.push(new MagnetEntity('eraser', cx + 170, cy + 60));
-    state.entities.push(new MagnetEntity('al_can', cx + 220, cy - 20));
+    // 右侧：不能被吸引的非磁性物品（整齐纵向间隔排布）
+    state.entities.push(new MagnetEntity('wood', cx + 240, cy - 110));
+    state.entities.push(new MagnetEntity('duck', cx + 240, cy - 35));
+    state.entities.push(new MagnetEntity('eraser', cx + 240, cy + 40));
+    state.entities.push(new MagnetEntity('al_can', cx + 240, cy + 115));
 
     state.selectedEntity = magnet;
     updateInspector();
