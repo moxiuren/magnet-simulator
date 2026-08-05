@@ -470,6 +470,12 @@ function computeMagneticField(x, y, excludeMagnetId = null) {
 
   for (const entity of state.entities) {
     if (entity.id === excludeMagnetId) continue;
+
+    // 直尺赛跑模式：独力赛道隔离，防止跨赛道磁力偏引干扰
+    if (currentPreset === 'ruler_race' && Math.abs(entity.x - x) > 100) {
+      continue;
+    }
+
     const poles = entity.getPoles();
 
     for (const p of poles) {
@@ -612,6 +618,21 @@ function updatePhysics(dt) {
         const { cy } = getCanvasCenter();
         entity.y = cy;
         entity.vy = 0;
+        entity.vAngle = 0;
+      }
+
+      if (currentPreset === 'ruler_race' && entity.isFerromagnetic()) {
+        const { cx } = getCanvasCenter();
+        const lanes = [cx - 220, cx, cx + 220];
+        let closestX = lanes[0];
+        let minDist = Math.abs(entity.x - lanes[0]);
+        for (const lx of lanes) {
+          const d = Math.abs(entity.x - lx);
+          if (d < minDist) { minDist = d; closestX = lx; }
+        }
+        entity.x = closestX;
+        entity.vx = 0;
+        entity.angle = 0;
         entity.vAngle = 0;
       }
     }
@@ -917,34 +938,59 @@ function drawTrackRail() {
  * 直尺推回形针赛跑 UI
  */
 function drawRulerRaceUI() {
-  const cx = canvas.width / 2;
+  const { cx, cy } = getCanvasCenter();
 
   // 更新直尺位置
   if (rulerSpeed > 0) {
     rulerY -= rulerSpeed;
-    if (rulerY < canvas.height / 2 - 30) {
-      rulerY = canvas.height / 2 - 30;
+    if (rulerY < cy - 30) {
+      rulerY = cy - 30;
       rulerSpeed = 0;
     }
   }
 
   ctx.save();
+
+  // 绘制 3 条独立赛道跑道线（隔开各赛道，防止磁力跨道干扰）
+  const lanes = [
+    { x: cx - 220, label: '🥇 强磁铁赛道 (最远最先吸飞)', color: 'rgba(239, 68, 68, 0.4)' },
+    { x: cx,       label: '🥈 中磁铁赛道 (中等距离吸飞)', color: 'rgba(56, 189, 248, 0.4)' },
+    { x: cx + 220, label: '🥉 弱磁铁赛道 (离近了才吸飞)', color: 'rgba(245, 158, 11, 0.4)' }
+  ];
+
+  for (const lane of lanes) {
+    ctx.strokeStyle = lane.color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(lane.x - 90, cy - 200); ctx.lineTo(lane.x - 90, canvas.height - 80);
+    ctx.moveTo(lane.x + 90, cy - 200); ctx.lineTo(lane.x + 90, canvas.height - 80);
+    ctx.stroke();
+
+    // 赛道顶部名称
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(lane.label, lane.x, cy - 180);
+  }
+  ctx.setLineDash([]);
+
   // 绘制黄色木质直尺
   ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(cx - 320, rulerY, 640, 28);
+  ctx.fillRect(cx - 330, rulerY, 660, 28);
   ctx.strokeStyle = '#b45309';
   ctx.lineWidth = 2;
-  ctx.strokeRect(cx - 320, rulerY, 640, 28);
+  ctx.strokeRect(cx - 330, rulerY, 660, 28);
 
   // 刻度线
   ctx.fillStyle = '#78350f';
   ctx.font = '9px sans-serif';
   ctx.textAlign = 'center';
-  for (let i = -300; i <= 300; i += 10) {
+  for (let i = -310; i <= 310; i += 10) {
     const markH = i % 50 === 0 ? 12 : 6;
     ctx.fillRect(cx + i, rulerY, 1.5, markH);
     if (i % 50 === 0) {
-      ctx.fillText(`${(i + 300) / 10}`, cx + i, rulerY + 20);
+      ctx.fillText(`${(i + 310) / 10}`, cx + i, rulerY + 20);
     }
   }
 
