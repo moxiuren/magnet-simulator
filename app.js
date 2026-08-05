@@ -792,6 +792,10 @@ function render() {
 
   drawBackgroundGrid();
 
+  if (currentPreset === 'track_repel') {
+    drawTrackRailBase();
+  }
+
   if (state.showHeatmap) {
     drawHeatmap();
   }
@@ -820,7 +824,7 @@ function render() {
   }
 
   if (currentPreset === 'track_repel') {
-    drawTrackRail();
+    drawTrackRailOverlay();
   }
 
   if (state.showForces) {
@@ -869,9 +873,9 @@ function drawMagnetAttachedCount(magnet) {
 }
 
 /**
- * 一年级实验 7：磁铁轨道单轨推退赛 UI
+ * 一年级实验 7：磁铁轨道单轨推退赛 UI (底座轨道，位于磁铁下层)
  */
-function drawTrackRail() {
+function drawTrackRailBase() {
   const { cx, cy } = getCanvasCenter();
   const trackW = Math.min(840, canvas.width - 160);
   const startX = cx - trackW / 2;
@@ -898,6 +902,19 @@ function drawTrackRail() {
   ctx.moveTo(startX, cy - 20); ctx.lineTo(endX, cy - 20);
   ctx.moveTo(startX, cy + 20); ctx.lineTo(endX, cy + 20);
   ctx.stroke();
+
+  ctx.restore();
+}
+
+/**
+ * 一年级实验 7：磁铁轨道单轨推退赛 UI (刻度徽章，位于磁铁上层)
+ */
+function drawTrackRailOverlay() {
+  const { cx, cy } = getCanvasCenter();
+  const trackW = Math.min(840, canvas.width - 160);
+  const startX = cx - trackW / 2;
+
+  ctx.save();
 
   // 刻度线与数字
   ctx.fillStyle = '#94a3b8';
