@@ -577,6 +577,18 @@ function updatePhysics(dt) {
       entity.vy *= damp;
       entity.vAngle *= damp;
 
+      if (entity.isFerromagnetic()) {
+        const B = computeMagneticField(entity.x, entity.y, entity.id);
+        if (B.mag > 80) {
+          const speed = Math.hypot(entity.vx, entity.vy);
+          if (speed < 40) {
+            entity.vx *= 0.4;
+            entity.vy *= 0.4;
+            entity.vAngle *= 0.2;
+          }
+        }
+      }
+
       entity.x += entity.vx * subDt;
       entity.y += entity.vy * subDt;
       entity.angle += entity.vAngle * subDt;
@@ -660,25 +672,23 @@ function resolveOBBCollision(a, b) {
     }
 
     if (a.isFerromagnetic() && aMovable) {
-      a.vx *= 0.1;
-      a.vy *= 0.1;
-      a.vAngle *= 0.05;
-      if (Math.hypot(a.vx, a.vy) < 1.5) { a.vx = 0; a.vy = 0; a.vAngle = 0; }
+      a.vx = 0;
+      a.vy = 0;
+      a.vAngle = 0;
     } else if (aMovable) {
-      a.vx *= 0.6;
-      a.vy *= 0.6;
-      a.vAngle *= 0.4;
+      a.vx *= 0.2;
+      a.vy *= 0.2;
+      a.vAngle *= 0.1;
     }
 
     if (b.isFerromagnetic() && bMovable) {
-      b.vx *= 0.1;
-      b.vy *= 0.1;
-      b.vAngle *= 0.05;
-      if (Math.hypot(b.vx, b.vy) < 1.5) { b.vx = 0; b.vy = 0; b.vAngle = 0; }
+      b.vx = 0;
+      b.vy = 0;
+      b.vAngle = 0;
     } else if (bMovable) {
-      b.vx *= 0.6;
-      b.vy *= 0.6;
-      b.vAngle *= 0.4;
+      b.vx *= 0.2;
+      b.vy *= 0.2;
+      b.vAngle *= 0.1;
     }
   }
 }
