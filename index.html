@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧲 高级磁铁物理模拟器 | Interactive Magnet Simulator PRO 2.0</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Header Navbar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">🧲</div>
+        <div class="brand-text">
+          <h1>磁铁物理实验室 <span class="badge">一年级科学教学版</span></h1>
+          <p>Primary School Magnet Science & Physics Lab</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="preset-selector">
+          <label for="preset-select">教学预设：</label>
+          <select id="preset-select">
+            <option value="kids_test">一年级实验 1: 能吸与不能吸 (Attracted vs Non-magnetic)</option>
+            <option value="attract">一年级实验 2: 异极相吸 (Attract)</option>
+            <option value="repel">一年级实验 3: 同极相斥 (Repel)</option>
+            <option value="compare_strength">一年级实验 4: 磁力强弱比拼 (吸回形针数量)</option>
+            <option value="heat_drop_damage">一年级实验 5: 跌落与火烧对磁力的破坏</option>
+            <option value="ruler_race">一年级实验 6: 直尺推回形针赛跑 (作用距离大比拼)</option>
+            <option value="break_demo">摔断磁铁演示 (Broken Magnet)</option>
+            <option value="quad">四极矩阵锁 (Magnetic Lock)</option>
+            <option value="iron_filings">铁屑磁感线实验 (Iron Filings)</option>
+            <option value="compass_grid">指南针向量阵列 (Compass Array)</option>
+            <option value="empty">空白画布 (Empty)</option>
+          </select>
+        </div>
+        <button id="btn-pause" class="btn btn-secondary">
+          <span class="icon">⏸️</span> <span class="text">暂停</span>
+        </button>
+        <button id="btn-reset" class="btn btn-secondary">
+          <span class="icon">🔄</span> 重置场景
+        </button>
+        <button id="btn-clear" class="btn btn-danger">
+          <span class="icon">🗑️</span> 清空
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Left Sidebar: Tools & Controls -->
+      <aside class="sidebar">
+        <!-- Spawn Panel: Magnets -->
+        <section class="panel-section">
+          <h3><span class="sec-icon">🧲</span> 添加内置磁体</h3>
+          <div class="tool-grid">
+            <button class="tool-btn" id="spawn-bar">
+              <span class="tool-icon">🧱</span>
+              <span class="tool-name">条形磁铁</span>
+            </button>
+            <button class="tool-btn" id="spawn-ushape">
+              <span class="tool-icon">🧲</span>
+              <span class="tool-name">U 型磁铁</span>
+            </button>
+            <button class="tool-btn" id="spawn-horseshoe">
+              <span class="tool-icon">🎠</span>
+              <span class="tool-name">马蹄形磁铁</span>
+            </button>
+            <button class="tool-btn" id="spawn-button">
+              <span class="tool-icon">🔘</span>
+              <span class="tool-name">纽扣磁铁</span>
+            </button>
+            <button class="tool-btn" id="spawn-ring">
+              <span class="tool-icon">⭕</span>
+              <span class="tool-name">环形磁铁</span>
+            </button>
+            <button class="tool-btn" id="spawn-compass">
+              <span class="tool-icon">🧭</span>
+              <span class="tool-name">指南针</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Spawn Panel: Everyday Science Objects -->
+        <section class="panel-section">
+          <h3><span class="sec-icon">🏫</span> 一年级科学实验物品</h3>
+          
+          <div class="sub-label green-label">✨ 能被磁铁吸引的铁制品：</div>
+          <div class="tool-grid">
+            <button class="tool-btn item-magnetic" id="spawn-paperclip">
+              <span class="tool-icon">📎</span>
+              <span class="tool-name">回形针</span>
+            </button>
+            <button class="tool-btn item-magnetic" id="spawn-nail">
+              <span class="tool-icon">📌</span>
+              <span class="tool-name">铁钉</span>
+            </button>
+            <button class="tool-btn item-magnetic" id="spawn-coin">
+              <span class="tool-icon">🪙</span>
+              <span class="tool-name">铁币/硬币</span>
+            </button>
+            <button class="tool-btn item-magnetic" id="spawn-key">
+              <span class="tool-icon">🔑</span>
+              <span class="tool-name">铁钥匙</span>
+            </button>
+          </div>
+
+          <div class="sub-label red-label">❌ 不能被吸引的物品：</div>
+          <div class="tool-grid">
+            <button class="tool-btn item-nonmagnetic" id="spawn-wood">
+              <span class="tool-icon">🪵</span>
+              <span class="tool-name">木块</span>
+            </button>
+            <button class="tool-btn item-nonmagnetic" id="spawn-duck">
+              <span class="tool-icon">🦆</span>
+              <span class="tool-name">塑料小鸭</span>
+            </button>
+            <button class="tool-btn item-nonmagnetic" id="spawn-eraser">
+              <span class="tool-icon">✏️</span>
+              <span class="tool-name">橡皮擦</span>
+            </button>
+            <button class="tool-btn item-nonmagnetic" id="spawn-alcan">
+              <span class="tool-icon">🥤</span>
+              <span class="tool-name">铝易拉罐</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Visual Layers Panel -->
+        <section class="panel-section">
+          <h3><span class="sec-icon">👁️</span> 磁场可视化图层</h3>
+          <div class="toggle-list">
+            <label class="toggle-item">
+              <span class="toggle-label">⚡ 磁感线 (Streamlines)</span>
+              <input type="checkbox" id="toggle-fieldlines" checked>
+              <span class="slider"></span>
+            </label>
+            <label class="toggle-item">
+              <span class="toggle-label">🌌 铁屑分布 (Iron Filings)</span>
+              <input type="checkbox" id="toggle-filings" checked>
+              <span class="slider"></span>
+            </label>
+            <label class="toggle-item">
+              <span class="toggle-label">🧭 矢量场点阵 (Vector Grid)</span>
+              <input type="checkbox" id="toggle-vectorgrid">
+              <span class="slider"></span>
+            </label>
+            <label class="toggle-item">
+              <span class="toggle-label">🌡️ 磁场热力图 (Heatmap)</span>
+              <input type="checkbox" id="toggle-heatmap">
+              <span class="slider"></span>
+            </label>
+            <label class="toggle-item">
+              <span class="toggle-label">↗️ 受力矢量箭图 (Forces)</span>
+              <input type="checkbox" id="toggle-forces" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Physics Parameters Panel -->
+        <section class="panel-section">
+          <h3><span class="sec-icon">⚙️</span> 物理环境设置</h3>
+          <div class="control-group">
+            <div class="control-header">
+              <span>全局磁力强度</span>
+              <span id="val-strength" class="val-badge">3.0x</span>
+            </div>
+            <input type="range" id="slider-strength" min="0.1" max="10.0" step="0.1" value="3.0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-header">
+              <span>阻尼 / 空气阻力</span>
+              <span id="val-damping" class="val-badge">0.04</span>
+            </div>
+            <input type="range" id="slider-damping" min="0.01" max="0.2" step="0.01" value="0.04">
+          </div>
+
+          <div class="control-group">
+            <div class="control-header">
+              <span>模拟演算速度</span>
+              <span id="val-speed" class="val-badge">1.0x</span>
+            </div>
+            <input type="range" id="slider-speed" min="0.1" max="3.0" step="0.1" value="1.0">
+          </div>
+
+          <div class="control-group">
+            <div class="control-header">
+              <span>铁屑密度</span>
+              <span id="val-filings-count" class="val-badge">800</span>
+            </div>
+            <input type="range" id="slider-filings-count" min="100" max="2500" step="100" value="800">
+          </div>
+
+          <div class="toggle-list">
+            <label class="toggle-item">
+              <span class="toggle-label">🔊 音效 (碰撞与吸附)</span>
+              <input type="checkbox" id="toggle-sound" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Instructions Panel -->
+        <section class="panel-section info-box">
+          <h4>💡 科学小知识 (一年级磁铁课)</h4>
+          <ul>
+            <li><strong>1. 能吸与不能吸：</strong> 磁铁能吸引铁制品（回形针、铁钉），不能吸引木块、橡胶、塑料、铝和铜。</li>
+            <li><strong>2. 同极相斥，异极相吸：</strong> N极(红)与N极靠近互相推开；N极(红)与S极(蓝)牢牢吸引在一起！</li>
+            <li><strong>3. 比较磁力强弱：</strong> 磁铁磁力越强，能吸引的回形针数量就越多！</li>
+            <li><strong>4. 破坏磁力的因素：</strong> 磁铁频繁<strong>跌落撞击</strong>或用<strong>火烧加热</strong>会导致磁力变弱甚至消失！</li>
+            <li><strong>5. 磁力作用距离：</strong> 磁力越强的磁铁，越能在更远的距离吸走回形针（可用直尺比赛测试）！</li>
+            <li><strong>6. 摔断的磁铁：</strong> 折断的磁铁半块仍会各自形成全新的 N极与 S极！</li>
+          </ul>
+        </section>
+      </aside>
+
+      <!-- Center Viewport / Canvas Container -->
+      <main class="viewport-container">
+        <canvas id="sim-canvas"></canvas>
+
+        <!-- On-Canvas HUD Stats -->
+        <div class="hud-stats">
+          <div class="hud-item"><span class="hud-label">物品总数:</span> <span id="hud-magnet-count">0</span></div>
+          <div class="hud-item"><span class="hud-label">计算 FPS:</span> <span id="hud-fps">60</span></div>
+          <div class="hud-item"><span class="hud-label">磁极总数:</span> <span id="hud-pole-count">0</span></div>
+        </div>
+
+        <!-- Selected Entity Inspector Bar -->
+        <div id="inspector-bar" class="inspector-bar hidden">
+          <div class="inspector-title">
+            <span id="inspector-icon">🧱</span>
+            <span id="inspector-name">条形磁铁 #1</span>
+          </div>
+          <div class="inspector-controls">
+            <div class="inspector-item" id="inspect-strength-group">
+              <span>磁力强度:</span>
+              <input type="range" id="inspect-strength" min="0.2" max="3.0" step="0.1" value="1.0">
+              <span id="inspect-strength-val">1.0x</span>
+            </div>
+            <div class="inspector-item">
+              <button id="inspect-btn-flip" class="btn btn-small">🔄 翻转磁极 (N ⇄ S)</button>
+            </div>
+            <div class="inspector-item">
+              <button id="inspect-btn-drop" class="btn btn-small btn-warning">💥 跌落损伤 (磁力衰减)</button>
+            </div>
+            <div class="inspector-item">
+              <button id="inspect-btn-heat" class="btn btn-small btn-danger">🔥 火烧加热 (高温消磁)</button>
+            </div>
+            <div class="inspector-item">
+              <button id="inspect-btn-break" class="btn btn-small btn-warning">🔨 摔断成两段</button>
+            </div>
+            <div class="inspector-item">
+              <label class="checkbox-label">
+                <input type="checkbox" id="inspect-pin"> 📌 固定位置
+              </label>
+            </div>
+            <div class="inspector-item">
+              <button id="inspect-btn-delete" class="btn btn-small btn-danger">🗑️ 删除</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
