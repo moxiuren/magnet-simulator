@@ -622,7 +622,7 @@ function updatePhysics(dt) {
       }
 
       if (currentPreset === 'ruler_race' && entity.isFerromagnetic()) {
-        const { cx } = getCanvasCenter();
+        const { cx, cy } = getCanvasCenter();
         const lanes = [cx - 220, cx, cx + 220];
         let closestX = lanes[0];
         let minDist = Math.abs(entity.x - lanes[0]);
@@ -634,6 +634,20 @@ function updatePhysics(dt) {
         entity.vx = 0;
         entity.angle = 0;
         entity.vAngle = 0;
+
+        // 直尺吸附门槛门阀：未达到对应磁极作用距离前，强制托在直尺上跟随移动，不动不飞！
+        const magTargetY = cy - 140;
+        const distToMagnet = Math.abs(entity.y - magTargetY);
+
+        let threshold = 65;
+        if (Math.abs(closestX - (cx - 220)) < 20) threshold = 175;      // 强磁铁门槛 175px
+        else if (Math.abs(closestX - cx) < 20) threshold = 115;        // 中磁铁门槛 115px
+        else if (Math.abs(closestX - (cx + 220)) < 20) threshold = 65; // 弱磁铁门槛 65px
+
+        if (distToMagnet > threshold && entity.y >= rulerY - 35) {
+          entity.y = rulerY - 15;
+          entity.vy = 0;
+        }
       }
     }
 
@@ -1719,20 +1733,26 @@ function updateHUD() {
   }
 }
 
+let isDraggingRuler = false;
+
 function setupInteractions() {
-  canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+  const handleStart = (mx, my) => {
     state.mousePos = { x: mx, y: my };
 
-    // 直尺赛跑推直尺按钮点击
+    // 直尺赛跑推直尺与拖拽直尺
     if (currentPreset === 'ruler_race') {
-      const cx = canvas.width / 2;
+      const { cx } = getCanvasCenter();
+      // 如果点击/触摸到黄色木质直尺上，开启手动拖拽
+      if (Math.abs(mx - cx) < 340 && Math.abs(my - rulerY) < 30) {
+        isDraggingRuler = true;
+        sounds.playClink();
+        return;
+      }
+      // 按钮：“推动直尺向上”
       if (Math.abs(mx - cx) < 110 && Math.abs(my - (canvas.height - 49)) < 21) {
         sounds.playClink();
-        rulerSpeed = 1.2;
-        showToast('🚀 推动直尺向上！注意看哪个回形针最先被磁铁吸飞上去！');
+        rulerSpeed = 1.8;
+        showToast('🚀 推动直尺向上靠近磁铁！注意观察哪个回形针最先吸飞上去！');
         return;
       }
     }
@@ -1744,7 +1764,7 @@ function setupInteractions() {
       const handleX = eObj.x + (eObj.width / 2 + 24) * cos;
       const handleY = eObj.y + (eObj.width / 2 + 24) * sin;
 
-      if (Math.hypot(mx - handleX, my - handleY) < 16) {
+      if (Math.hypot(mx - handleX, my - handleY) < 20) {
         state.isRotating = true;
         return;
       }
@@ -1757,7 +1777,7 @@ function setupInteractions() {
       const dy = my - ent.y;
       const dist = Math.hypot(dx, dy);
 
-      if (dist < ent.width / 2 + 8) {
+      if (dist < ent.width / 2 + 12) {
         hitEntity = ent;
         break;
       }
@@ -1772,18 +1792,20 @@ function setupInteractions() {
       state.selectedEntity = null;
       hideInspector();
     }
-  });
+  };
 
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    
+  const handleMove = (mx, my) => {
     state.dragVelocity = {
       x: mx - state.mousePos.x,
       y: my - state.mousePos.y
     };
     state.mousePos = { x: mx, y: my };
+
+    if (isDraggingRuler) {
+      const { cy } = getCanvasCenter();
+      rulerY = Math.max(cy - 40, Math.min(canvas.height - 80, my));
+      return;
+    }
 
     if (state.isRotating && state.selectedEntity) {
       const dx = mx - state.selectedEntity.x;
@@ -1795,16 +1817,62 @@ function setupInteractions() {
       state.selectedEntity.vx = state.dragVelocity.x * 10;
       state.selectedEntity.vy = state.dragVelocity.y * 10;
     }
-  });
+  };
 
-  window.addEventListener('mouseup', () => {
+  const handleEnd = () => {
     if (state.isDragging && state.selectedEntity) {
       state.selectedEntity.vx = state.dragVelocity.x * 20;
       state.selectedEntity.vy = state.dragVelocity.y * 20;
     }
     state.isDragging = false;
     state.isRotating = false;
+    isDraggingRuler = false;
+  };
+
+  // Mouse events
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handleStart(e.clientX - rect.left, e.clientY - rect.top);
   });
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handleMove(e.clientX - rect.left, e.clientY - rect.top);
+  });
+
+  window.addEventListener('mouseup', handleEnd);
+
+  // Touch / Touchpad / Interactive Whiteboard Events (全触控板/触控屏支持)
+  const getTouchPos = (touch) => {
+    const rect = canvas.getBoundingClientRect();
+    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+  };
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      e.preventDefault();
+      const pos = getTouchPos(e.touches[0]);
+      handleStart(pos.x, pos.y);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      e.preventDefault();
+      const pos = getTouchPos(e.touches[0]);
+      handleMove(pos.x, pos.y);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    handleEnd();
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    handleEnd();
+  }, { passive: false });
 
   canvas.addEventListener('dblclick', (e) => {
     if (state.selectedEntity && !state.selectedEntity.isFerromagnetic() && !state.selectedEntity.isNonMagnetic()) {
@@ -2213,16 +2281,16 @@ function loadPreset(preset) {
     m1.pinned = true; m2.pinned = true; m3.pinned = true;
     state.entities.push(m1, m2, m3);
 
-    rulerY = cy + 180;
+    rulerY = cy + 220; // 调远直尺起始高度，保证刚打开时回形针完全静止不动！
     rulerSpeed = 0;
 
-    // 3个回形针放在直尺上方
+    // 3个回形针放在直尺上方，静止等待直尺推近
     const pc1 = new MagnetEntity('paperclip', cx - 220, rulerY - 15);
     const pc2 = new MagnetEntity('paperclip', cx, rulerY - 15);
     const pc3 = new MagnetEntity('paperclip', cx + 220, rulerY - 15);
     state.entities.push(pc1, pc2, pc3);
 
-    showToast('📏 一年级实验 6：直尺推回形针赛跑！点击【推动直尺向上】，看看哪块磁铁在最远的地方最先吸走回形针！');
+    showToast('📏 一年级实验 6：直尺推回形针赛跑！可以用手/鼠标直接【拖拽直尺向上】，观察强磁铁在最远的地方最先吸飞回形针！');
   } else if (preset === 'break_demo') {
     const mainBar = new MagnetEntity('bar', cx, cy, 0, 2.0, 160, 46);
     state.entities.push(mainBar);
