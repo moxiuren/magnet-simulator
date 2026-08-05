@@ -1951,8 +1951,15 @@ function loadPreset(preset) {
   state.selectedEntity = null;
   hideInspector();
 
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
+  // 确保画布尺寸正确
+  if (!canvas.width || canvas.width < 100) {
+    resizeCanvas();
+  }
+
+  const w = canvas.width > 100 ? canvas.width : (window.innerWidth > 400 ? window.innerWidth - 340 : 600);
+  const h = canvas.height > 100 ? canvas.height : (window.innerHeight > 200 ? window.innerHeight - 100 : 500);
+  const cx = Math.max(150, w / 2);
+  const cy = Math.max(150, h / 2);
 
   if (preset === 'kids_test') {
     const magnet = new MagnetEntity('bar', cx, cy, 0, 2.5);
@@ -2084,6 +2091,14 @@ window.addEventListener('DOMContentLoaded', () => {
   resizeCanvas();
   setupInteractions();
   setupUIControls();
-  loadPreset('kids_test');
+
+  // 延迟 100ms 重新计算 Canvas 真实尺寸与加载预设，防止弹性布局计算滞后
+  setTimeout(() => {
+    resizeCanvas();
+    if (state.entities.length === 0) {
+      loadPreset('kids_test');
+    }
+  }, 100);
+
   requestAnimationFrame(loop);
 });
