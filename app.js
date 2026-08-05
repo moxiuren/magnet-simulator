@@ -104,6 +104,10 @@ class SoundEngine {
 
 const sounds = new SoundEngine();
 
+let currentPreset = 'kids_test';
+let rulerY = 0;
+let rulerSpeed = 0;
+
 // Simulation State
 const state = {
   entities: [],
@@ -1664,6 +1668,8 @@ const inspectPin = document.getElementById('inspect-pin');
 const inspectBtnFlip = document.getElementById('inspect-btn-flip');
 const inspectBtnDrop = document.getElementById('inspect-btn-drop');
 const inspectBtnHeat = document.getElementById('inspect-btn-heat');
+const inspectBtnBreak = document.getElementById('inspect-btn-break');
+const inspectBtnDelete = document.getElementById('inspect-btn-delete');
 
 function updateInspector() {
   const e = state.selectedEntity;
@@ -1956,10 +1962,6 @@ function spawnCompassGrid() {
   }
 }
 
-let currentPreset = 'kids_test';
-let rulerY = 0; // 直尺 Y 坐标
-let rulerSpeed = 0;
-
 function loadPreset(preset) {
   currentPreset = preset;
   state.entities = [];
@@ -2094,18 +2096,16 @@ function loop(currentTime) {
   requestAnimationFrame(loop);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   resizeCanvas();
   setupInteractions();
   setupUIControls();
-
-  // 延迟 100ms 重新计算 Canvas 真实尺寸与加载预设，防止弹性布局计算滞后
-  setTimeout(() => {
-    resizeCanvas();
-    if (state.entities.length === 0) {
-      loadPreset('kids_test');
-    }
-  }, 100);
-
+  loadPreset('kids_test');
   requestAnimationFrame(loop);
-});
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
