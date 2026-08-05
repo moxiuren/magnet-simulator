@@ -607,6 +607,13 @@ function updatePhysics(dt) {
       if (entity.x > canvas.width - margin) { entity.x = canvas.width - margin; entity.vx = 0; }
       if (entity.y < margin) { entity.y = margin; entity.vy = 0; }
       if (entity.y > canvas.height - margin) { entity.y = canvas.height - margin; entity.vy = 0; }
+
+      if (currentPreset === 'track_repel') {
+        const { cy } = getCanvasCenter();
+        entity.y = cy;
+        entity.vy = 0;
+        entity.vAngle = 0;
+      }
     }
 
     handleSATCollisions();
@@ -768,13 +775,17 @@ function render() {
 
   for (const entity of state.entities) {
     drawEntity(entity);
-    if (!entity.isFerromagnetic() && !entity.isNonMagnetic()) {
+    if (currentPreset !== 'track_repel' && !entity.isFerromagnetic() && !entity.isNonMagnetic()) {
       drawMagnetAttachedCount(entity);
     }
   }
 
   if (currentPreset === 'ruler_race') {
     drawRulerRaceUI();
+  }
+
+  if (currentPreset === 'track_repel') {
+    drawTrackRail();
   }
 
   if (state.showForces) {
@@ -818,6 +829,86 @@ function drawMagnetAttachedCount(magnet) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(`📎 已吸: ${count}个`, 0, 0);
+
+  ctx.restore();
+}
+
+/**
+ * 一年级实验 7：磁铁轨道单轨推退赛 UI
+ */
+function drawTrackRail() {
+  const { cx, cy } = getCanvasCenter();
+  const trackW = Math.min(840, canvas.width - 160);
+  const startX = cx - trackW / 2;
+  const endX = cx + trackW / 2;
+
+  ctx.save();
+
+  // 轨道木质底座外框
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(startX - 24, cy - 36, trackW + 48, 72, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  // 凹槽轨槽与金属滑轨
+  ctx.fillStyle = '#090d16';
+  ctx.fillRect(startX - 10, cy - 24, trackW + 20, 48);
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(startX, cy - 20); ctx.lineTo(endX, cy - 20);
+  ctx.moveTo(startX, cy + 20); ctx.lineTo(endX, cy + 20);
+  ctx.stroke();
+
+  // 刻度线与数字
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  const numTicks = 20;
+  for (let i = 0; i <= numTicks; i++) {
+    const tx = startX + (i / numTicks) * trackW;
+    ctx.strokeStyle = i % 5 === 0 ? '#38bdf8' : '#475569';
+    ctx.lineWidth = i % 5 === 0 ? 2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(tx, cy - 23); ctx.lineTo(tx, cy - 17);
+    ctx.moveTo(tx, cy + 17); ctx.lineTo(tx, cy + 23);
+    ctx.stroke();
+
+    if (i % 2 === 0) {
+      ctx.fillText(`${i * 3}cm`, tx, cy + 32);
+    }
+  }
+
+  // 实时距离计算与提示徽章
+  const bars = state.entities.filter(e => e.type === 'bar');
+  if (bars.length >= 2) {
+    const b1 = bars[0].x < bars[1].x ? bars[0] : bars[1];
+    const b2 = bars[0].x < bars[1].x ? bars[1] : bars[0];
+
+    const gapPx = Math.max(0, Math.round(b2.x - b1.x - b1.width));
+    const gapCm = (gapPx / 12).toFixed(1);
+
+    const midX = (b1.x + b2.x) / 2;
+    const isRepelling = gapPx < 220;
+
+    ctx.fillStyle = isRepelling ? 'rgba(239, 68, 68, 0.95)' : 'rgba(14, 165, 233, 0.9)';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(midX - 95, cy - 68, 190, 26, 13);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`📏 磁极距离: ${gapCm} cm (${isRepelling ? '同极排斥退后中! 💨' : '靠近磁铁推退'})`, midX, cy - 55);
+  }
 
   ctx.restore();
 }
@@ -2019,6 +2110,19 @@ function loadPreset(preset) {
     const m2 = new MagnetEntity('bar', cx + 160, cy, Math.PI, 2.5);
     state.entities.push(m1, m2);
     showToast('🚫 一年级实验 3：同极相斥（红极 N 与 红极 N 靠近会互相推开推走）！');
+  } else if (preset === 'track_repel') {
+    // 磁铁轨道单轨推退赛 (同极相斥隔空推着退后)
+    const m1 = new MagnetEntity('bar', cx - 220, cy, 0, 3.5); // N极朝右
+    const m2 = new MagnetEntity('bar', cx + 60, cy, Math.PI, 3.5); // N极朝左 (同极相斥!)
+    m1.pinned = false;
+    m2.pinned = false;
+
+    state.entities.push(m1, m2);
+
+    state.selectedEntity = m1;
+    updateInspector();
+
+    showToast('🛤️ 一年级实验 7：磁铁轨道推退赛！按住拖动左边磁铁靠近右边磁铁，观察同极相斥（N极推N极）让右边磁铁隔空退后！');
   } else if (preset === 'compare_strength') {
     // 磁力强弱比拼 (吸回形针数量)
     const m1 = new MagnetEntity('bar', cx - 220, cy - 100, 0, 3.5); // 强
