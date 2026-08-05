@@ -423,6 +423,8 @@ if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D
   };
 }
 
+
+
 // Canvas & Context Setup
 const canvas = document.getElementById('sim-canvas');
 const ctx = canvas ? canvas.getContext('2d') : null;
@@ -430,14 +432,27 @@ const ctx = canvas ? canvas.getContext('2d') : null;
 function resizeCanvas() {
   if (!canvas || !canvas.parentElement) return;
   const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width > 0 ? rect.width : window.innerWidth - 320;
-  canvas.height = rect.height > 0 ? rect.height : (window.innerHeight - 80);
-  initIronFilings();
+  const w = rect.width > 200 ? rect.width : (window.innerWidth > 400 ? window.innerWidth - 320 : 600);
+  const h = rect.height > 200 ? rect.height : (window.innerHeight > 100 ? window.innerHeight - 80 : 500);
+
+  if (canvas.width !== Math.floor(w) || canvas.height !== Math.floor(h)) {
+    canvas.width = Math.floor(w);
+    canvas.height = Math.floor(h);
+    initIronFilings();
+  }
+}
+
+function getCanvasCenter() {
+  resizeCanvas();
+  const w = canvas.width || 800;
+  const h = canvas.height || 600;
+  return { cx: w / 2, cy: h / 2 };
 }
 
 window.addEventListener('resize', resizeCanvas);
 
 function initIronFilings() {
+  if (!canvas) return;
   state.ironFilings = [];
   for (let i = 0; i < state.filingsCount; i++) {
     state.ironFilings.push(new IronFiling(canvas.width, canvas.height));
@@ -1951,15 +1966,7 @@ function loadPreset(preset) {
   state.selectedEntity = null;
   hideInspector();
 
-  // 确保画布尺寸正确
-  if (!canvas.width || canvas.width < 100) {
-    resizeCanvas();
-  }
-
-  const w = canvas.width > 100 ? canvas.width : (window.innerWidth > 400 ? window.innerWidth - 340 : 600);
-  const h = canvas.height > 100 ? canvas.height : (window.innerHeight > 200 ? window.innerHeight - 100 : 500);
-  const cx = Math.max(150, w / 2);
-  const cy = Math.max(150, h / 2);
+  const { cx, cy } = getCanvasCenter();
 
   if (preset === 'kids_test') {
     const magnet = new MagnetEntity('bar', cx, cy, 0, 2.5);
