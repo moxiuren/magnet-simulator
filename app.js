@@ -399,14 +399,39 @@ class IronFiling {
   }
 }
 
+// Polyfill for CanvasRenderingContext2D.prototype.roundRect (兼容老旧浏览器/班级电脑)
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, radii) {
+    if (typeof radii === 'number') radii = [radii, radii, radii, radii];
+    if (!Array.isArray(radii)) radii = [0, 0, 0, 0];
+    let r0 = radii[0] || 0;
+    let r1 = radii[1] !== undefined ? radii[1] : r0;
+    let r2 = radii[2] !== undefined ? radii[2] : r0;
+    let r3 = radii[3] !== undefined ? radii[3] : r1;
+
+    this.moveTo(x + r0, y);
+    this.lineTo(x + w - r1, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r1);
+    this.lineTo(x + w, y + h - r2);
+    this.quadraticCurveTo(x + w, y + h, x + w - r2, y + h);
+    this.lineTo(x + r3, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r3);
+    this.lineTo(x, y + r0);
+    this.quadraticCurveTo(x, y, x + r0, y);
+    this.closePath();
+    return this;
+  };
+}
+
 // Canvas & Context Setup
 const canvas = document.getElementById('sim-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 
 function resizeCanvas() {
+  if (!canvas || !canvas.parentElement) return;
   const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
+  canvas.width = rect.width > 0 ? rect.width : window.innerWidth - 320;
+  canvas.height = rect.height > 0 ? rect.height : (window.innerHeight - 80);
   initIronFilings();
 }
 
