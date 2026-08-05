@@ -639,10 +639,10 @@ function updatePhysics(dt) {
         const magTargetY = cy - 140;
         const distToMagnet = Math.abs(entity.y - magTargetY);
 
-        let threshold = 65;
-        if (Math.abs(closestX - (cx - 220)) < 20) threshold = 175;      // 强磁铁门槛 175px
-        else if (Math.abs(closestX - cx) < 20) threshold = 115;        // 中磁铁门槛 115px
-        else if (Math.abs(closestX - (cx + 220)) < 20) threshold = 65; // 弱磁铁门槛 65px
+        let threshold = 90;
+        if (Math.abs(closestX - (cx - 220)) < 20) threshold = 280;      // 强磁铁门槛 280px (大幅调远！隔着很远就飞起来)
+        else if (Math.abs(closestX - cx) < 20) threshold = 180;        // 中磁铁门槛 180px
+        else if (Math.abs(closestX - (cx + 220)) < 20) threshold = 90; // 弱磁铁门槛 90px
 
         if (distToMagnet > threshold && entity.y >= rulerY - 35) {
           entity.y = rulerY - 15;
@@ -2281,7 +2281,7 @@ function loadPreset(preset) {
     m1.pinned = true; m2.pinned = true; m3.pinned = true;
     state.entities.push(m1, m2, m3);
 
-    rulerY = cy + 220; // 调远直尺起始高度，保证刚打开时回形针完全静止不动！
+    rulerY = cy + 290; // 调远直尺初始起始高度，给强磁铁远距离吸飞留下充足空间！
     rulerSpeed = 0;
 
     // 3个回形针放在直尺上方，静止等待直尺推近
